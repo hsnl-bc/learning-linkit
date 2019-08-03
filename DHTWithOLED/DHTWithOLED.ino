@@ -2,34 +2,45 @@
 #include <Wire.h>
 #include <SeeedOLED.h>
 #include <LRTC.h>
+#include <LBLE.h>
+#include <LBLEPeriphral.h>
 #include "DHT.h"
 #define DHTPIN 2  // D2
 #define DHTTYPE DHT22   // DHT 22  (AM2302)
 
+// Hardware configuration
 DHT dht(DHTPIN, DHTTYPE);
 const int usrBtnPin = 6;
 
-float getHumidity() {
+// Bluetooth global
+LBLEService dhtService("72312f2b-9419-4dc8-bc95-acdfe81e8cb1");
+LBLECharacteristicString switchCharacteristic("72312f2c-9419-4dc8-bc95-acdfe81e8cb1", LBLE_READ | LBLE_WRITE);
+
+// Initialize accessible data
+float HUMIDITY=0;
+int TEMPERATURE=0;
+
+void setHumidity() {
   float h = dht.readHumidity();
   if (isnan(h)) {
     Serial.println("Humidity: Nan");
-    return 0;
   }
   Serial.println("Humidity: " + String(h));
-  return (round(h*100.0)/100.0);
+  HUMIDITY=(round(h*100.0)/100.0);
+  return;
 }
 
-int getTemperature() {
+void setTemperature() {
   float t = dht.readTemperature();
   if (isnan(t)) {
     Serial.println("Temperature: Nan");
-    return 0;
   }
   Serial.println("Temperature: " + String(t));
-  return int(t);
+  TEMPERATURE=int(t);
+  return;
 }
 
-void handleDhtOutput(){
+void handleOLEDOutput(){
   char fmStr[64];
   SeeedOled.clearDisplay();
   LRTC.get();
@@ -44,12 +55,31 @@ void handleDhtOutput(){
   SeeedOled.putString(fmStr);
   SeeedOled.setTextXY(4, 0);
   SeeedOled.putString("Humidity: ");
-  SeeedOled.putFloat(getHumidity());
+  SeeedOled.putFloat(HUMIDITY);
   SeeedOled.setTextXY(6, 0);
   SeeedOled.putString("Temperature: ");
-  SeeedOled.putNumber(getTemperature());
+  SeeedOled.putNumber(TEMPERATURE);
   return;
 }
+
+void initLBLE(){
+  LBLE.begin();
+  while (!LBLE.ready()) {
+    delay(100);
+  }
+  Serial.println("BLE ready");
+  Serial.print("Device Address = [");
+  Serial.print(LBLE.getDeviceAddress());
+  Serial.println("]"); 
+   LBLEAdvertisementData advertisement;
+  advertisement.configAsConnectableDevice("DHT Sensor");
+  LBLEPeripheral.setName("DHT Sensor");
+  dhtService.addAttribute(switchCharacteristic);
+  LBLEPeripheral.addService(dhtService);
+  LBLEPeripheral.begin();
+  LBLEPeripheral.advertise(advertisement);
+}
+
 void setup() {
   Wire.begin();
   SeeedOled.init();
@@ -70,12 +100,19 @@ void setup() {
   SeeedOled.setTextXY(6, 0);
   SeeedOled.putString("2077!");
   delay(10000);
+  // LBLE
+  initLBLE();
   // Start dht
   dht.begin();
 }
 
 void loop() {
   Serial.println("Refresh...");
-  handleDhtOutput()
+  setHumidity();
+  setTemperature();
+  handleOLEDOutput();
+  // Bluetooth broadcast
+  switchCharacteristic.setValue(String(HUMIDITY)+':'+String(TEMPERATURE));
+  
   delay(5000);
 }
