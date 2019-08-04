@@ -1,6 +1,6 @@
 # learning-linkit
 
-MCS's public page of DEMO purpose: [https://mcs.mediatek.com/public/devices/DOuHxFwk](https://mcs.mediatek.com/public/devices/DOuHxFwk)
+MCS's public page for DEMO purpose: [https://mcs.mediatek.com/public/devices/DOuHxFwk](https://mcs.mediatek.com/public/devices/DOuHxFwk)
 
 ## Requirement
 * Linkit 7697
