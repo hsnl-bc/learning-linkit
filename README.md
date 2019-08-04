@@ -16,8 +16,9 @@ Scan LBLE's characteristic of Temperature&Humidity service, and then request (PO
 ```sh
 pip install bleak requests
 ```
+Replace the device id and characteristic uuid with yours.
 ### WIFI
---
+Set your SSID and password.
 ### MotionTracking
 * IMU 9DOF
 * Grove-OLED Display 0.96"
