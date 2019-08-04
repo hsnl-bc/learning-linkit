@@ -10,8 +10,8 @@ MCS's public page for DEMO purpose: [https://mcs.mediatek.com/public/devices/DOu
 * Grove-OLED Display 0.96"
 ### LBLEService
 Scan LBLE's characteristic of Temperature&Humidity service, and then request (POST)  to mcs api.
-* Windows 10
-* Bluetooth
+* Windows 10 & Linux with BlueZ >= 5.43
+* Bluetooth ( use [Bleak](https://bleak.readthedocs.io)))
 * Python 3
 ```sh
 pip install bleak requests
