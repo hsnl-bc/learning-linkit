@@ -1,4 +1,5 @@
 #include "Arduino.h"
+#include <ArduinoJson.h>
 #include <Wire.h>
 #include <SeeedOLED.h>
 #include <LRTC.h>
@@ -14,7 +15,7 @@ const int usrBtnPin = 6;
 
 // Bluetooth global
 LBLEService dhtService("72312f2b-9419-4dc8-bc95-acdfe81e8cb1");
-LBLECharacteristicString switchCharacteristic("72312f2c-9419-4dc8-bc95-acdfe81e8cb1", LBLE_READ | LBLE_WRITE);
+LBLECharacteristicString switchCharacteristic("72312f2c-9419-4dc8-bc95-acdfe81e8cb1", LBLE_READ);
 
 // Initialize accessible data
 float HUMIDITY=0;
@@ -27,7 +28,6 @@ void setHumidity() {
   }
   Serial.println("Humidity: " + String(h));
   HUMIDITY=(round(h*100.0)/100.0);
-  return;
 }
 
 void setTemperature() {
@@ -37,7 +37,6 @@ void setTemperature() {
   }
   Serial.println("Temperature: " + String(t));
   TEMPERATURE=int(t);
-  return;
 }
 
 void handleOLEDOutput(){
@@ -59,7 +58,6 @@ void handleOLEDOutput(){
   SeeedOled.setTextXY(6, 0);
   SeeedOled.putString("Temperature: ");
   SeeedOled.putNumber(TEMPERATURE);
-  return;
 }
 
 void initLBLE(){
@@ -71,7 +69,7 @@ void initLBLE(){
   Serial.print("Device Address = [");
   Serial.print(LBLE.getDeviceAddress());
   Serial.println("]"); 
-   LBLEAdvertisementData advertisement;
+  LBLEAdvertisementData advertisement;
   advertisement.configAsConnectableDevice("DHT Sensor");
   LBLEPeripheral.setName("DHT Sensor");
   dhtService.addAttribute(switchCharacteristic);
@@ -80,15 +78,26 @@ void initLBLE(){
   LBLEPeripheral.advertise(advertisement);
 }
 
+void handleJsonCharacteristic(){
+  StaticJsonDocument<200> doc;
+  String result;
+  doc["sensor"] = "dht";
+  JsonObject obj = doc.createNestedObject("data");
+  obj["humidity"] = String(HUMIDITY);
+  obj["temperature"] = String(TEMPERATURE);
+  serializeJson(doc, result);
+  switchCharacteristic.setValue(result);
+}
+
 void setup() {
   Wire.begin();
-  SeeedOled.init();
   Serial.begin(9600);
   Serial.println("Initialize...");
   // RTC
   LRTC.begin();
   LRTC.set(2077, 1, 1, 0, 0, 0);
   // Oled init
+  SeeedOled.init();
   SeeedOled.clearDisplay();
   SeeedOled.setNormalDisplay();       //Set display to Normal mode
   SeeedOled.setPageMode();            //Set addressing mode to Page Mode
@@ -107,12 +116,12 @@ void setup() {
 }
 
 void loop() {
-  Serial.println("Refresh...");
+  // Handling global varibles
   setHumidity();
   setTemperature();
+  // Refresh and print on screen
   handleOLEDOutput();
-  // Bluetooth broadcast
-  switchCharacteristic.setValue(String(HUMIDITY)+':'+String(TEMPERATURE));
-  
+  // Bluetooth broadcast data
+  handleJsonCharacteristic();
   delay(5000);
 }
